@@ -2,39 +2,33 @@ package com.assignment.whatstheweather.utils;
 
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.os.Message;
 import android.support.v7.app.AlertDialog;
-import android.util.Log;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
-import com.android.volley.Request;
+import com.android.volley.NetworkResponse;
+import com.android.volley.ParseError;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.HttpHeaderParser;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.assignment.whatstheweather.App;
-import com.assignment.whatstheweather.interfaces.ServerCallback;
+import com.assignment.whatstheweather.R;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.Map;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
 public class ServerComm {
-    private static final String TAG = "ServerComm";
-    public ServerCallback listener = null;
-    Context context;
-    ProgressDialog progressDialog = null;
+    private static final String TAG = ServerComm.class.getSimpleName();
+    private ServerCallback requestListener = null;
+    private Context context;
+    private ProgressDialog progressDialog = null;
+    private AlertDialog currentShownErrorDialog = null;
 
     public ServerComm() {
     }
@@ -43,151 +37,207 @@ public class ServerComm {
         this.context = context;
     }
 
-
     public ServerComm(ServerCallback listener, Context context) {
-        this.listener = listener;
+        this.requestListener = listener;
         this.context = context;
     }
 
-    public static boolean isNetworkConnected(Context context) {
-        ConnectivityManager cm = ( ConnectivityManager ) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo ni = cm.getActiveNetworkInfo();
+    /**
+     * This calls the API which accepts json as parameter and returns result.
+     *
+     * @param requestType
+     * @param action
+     * @param requestParameterJsonObj
+     * @param showProgress
+     * @param isFeedbackCall
+     * @param message
+     */
+    public void communicateWithServerJsonParameters(int requestType, final String action, final JSONObject requestParameterJsonObj, boolean showProgress, boolean checkInternet, boolean isFeedbackCall, String message) {
 
-        if ( ni != null && ni.isConnectedOrConnecting() ) {
-            return true;
-        } else {
-            //Toast.makeText(context.getApplicationContext(), checkInternetStatus, Toast.LENGTH_SHORT).show();
-            new AlertDialog.Builder(context)
-                    .setTitle("Connection error")
-                    .setMessage("Please check your internet connection.")
-                    .setPositiveButton(android.R.string.yes, null)
-                    .create().show();
-            return false;
+        final String serverUrl = Constants.BASE_URL + action;
+
+        if (checkInternet) {
+            if (!Utils.isNetworkConnected(context, showProgress)) {
+                //check internet flag specified and internet is not connected then return
+                return;
+            }
         }
+        HttpsTrustManager.allowAllSSL();
+        JsonObjectRequest jsonObjRequest = new JsonObjectRequest(requestType, serverUrl, requestParameterJsonObj, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                String result = response.toString();
+                try {
+                    requestListener.onSuccess(result);
+                    if (progressDialog != null && progressDialog.isShowing()) {
+                        progressDialog.dismiss();
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Message message = new Message();
+                        message.obj = error.getMessage();
+                        error.printStackTrace();
+                        if (progressDialog != null) {
+                            progressDialog.dismiss();
+                        }
+                        try {
+                            if ((null != error) && (null != error.networkResponse)) {
+                                String errorResponse = getErrorResponseJson(error);
+
+                                int statusCode = error.networkResponse.statusCode;
+                                requestListener.onError(errorResponse, statusCode);
+                            } else {
+                                showErrorMessage(context.getString(R.string.error), context.getString(R.string.something_went_wrong));
+                                requestListener.onError(context.getString(R.string.error), 500);
+                            }
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }) {
+
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                HashMap<String, String> headers = new HashMap<>();
+                String accessToken = Constants.TOKEN;
+                if (accessToken != null && !accessToken.isEmpty()) {
+                    headers.put("Content-Type", "application/json");
+                    //headers.put("Authorization", "Bearer " + accessToken);
+                }
+                return headers;
+            }
+
+            @Override
+            protected Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
+                try {
+                    String jsonString = new String(response.data,
+                            HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
+                    JSONObject result = null;
+                    if (jsonString != null && jsonString.length() > 0)
+                        result = new JSONObject(jsonString);
+                    else
+                        result = new JSONObject();
+
+                    return Response.success(result,
+                            HttpHeaderParser.parseCacheHeaders(response));
+                } catch (UnsupportedEncodingException e) {
+                    return Response.error(new ParseError(e));
+                } catch (JSONException je) {
+                    return Response.error(new ParseError(je));
+                }
+            }
+        };
+        jsonObjRequest.setShouldCache(false);
+        if (isFeedbackCall)
+            jsonObjRequest.setRetryPolicy(new DefaultRetryPolicy(Constants.MAX_RETRY_POLICY_VOLLEY, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+        else
+            jsonObjRequest.setRetryPolicy(new DefaultRetryPolicy(DefaultRetryPolicy.DEFAULT_TIMEOUT_MS, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+        App.getInstance().addToRequestQueue(jsonObjRequest);
+        if (showProgress)
+            showProgressDialog(message);
+    }
+
+    /**
+     * This method will get the response string from the volley error object.
+     *
+     * @param error
+     * @return
+     */
+    private String getErrorResponseJson(VolleyError error) {
+        String errorResponse = "";
+        try {
+            NetworkResponse networkResponse = error.networkResponse;
+            if (networkResponse != null && networkResponse.data != null) {
+                errorResponse = new String(error.networkResponse.data,
+                        HttpHeaderParser.parseCharset(error.networkResponse.headers, "utf-8"));
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return errorResponse;
+    }
+
+
+    /**
+     * This method is responsible for handling HTTP status code and show/perform appropriate actions.
+     *
+     * @param statusCode
+     */
+    private void handleHttpStatusCodes(VolleyError error, int statusCode) {
+        //Handle the http status code appropriately.
+        String errorMessage = "";
+
+        NetworkResponse networkResponse = error.networkResponse;
+        String errorMsg = "";
+
+        try {
+            if (networkResponse != null && networkResponse.data != null) {
+                JSONObject responseJson = new JSONObject(new String(networkResponse.data));
+                errorMsg = responseJson.optJSONObject("error").optString("message");
+            }
+        } catch (JSONException ex) {
+            ex.printStackTrace();
+        }
+
+        Utils.showApiErrorMessage(context, context.getResources().getString(R.string.error), errorMsg);
     }
 
     /**
      * Showing Progress Dialog For Authentication of user
      */
     private void showProgressDialog(String message) {
+
         progressDialog = new ProgressDialog(context);
         progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         progressDialog.setCancelable(false);
-        progressDialog.setTitle("Please Wait.....");
+        progressDialog.setTitle(context.getString(R.string.please_wait));
         progressDialog.setMessage(message);
         progressDialog.show();
-    }
 
-    public void communicateWithServer(String action, final Map<String, String> params, boolean showProgress, String message) {
-
-        //TODO : change the Base URL
-        final String serverUrl = Constants.BASE_URL + action;
-
-        Log.d("KRIXI", params.toString());
-
-        HttpsTrustManager.allowAllSSL();
-
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, serverUrl,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        String result = response.toString();
-                        if ( progressDialog != null )
-                            progressDialog.dismiss();
-                        try {
-                            listener.onSuccess(result);
-                        } catch ( JSONException e ) {
-                            e.printStackTrace();
-                        }
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        if ( progressDialog != null ) {
-                            progressDialog.dismiss();
-                            showErrorMessage("Unable to connect", "Unable to connect to server. Please check your internet, or try after some time");
-//                            Log.d(TAG, error.toString());
-                        }
-                    }
-                }) {
-            @Override
-            protected Map<String, String> getParams() {
-                return params;
-            }
-        };
-
-        stringRequest.setShouldCache(false);
-        stringRequest.setRetryPolicy(new DefaultRetryPolicy(10000, 2, 2.0f));
-        App.getInstance().addToRequestQueue(stringRequest);
-        if ( showProgress )
-            showProgressDialog(message);
     }
 
     public void showErrorMessage(String title, String message) {
-        new AlertDialog.Builder(context)
-                .setTitle(title)
-                .setMessage(message)
-                .setPositiveButton(android.R.string.yes, null)
-                .create().show();
+        try {
+            currentShownErrorDialog = new AlertDialog.Builder(context)
+                    .setTitle(title)
+                    .setMessage(message)
+                    .setPositiveButton(R.string.ok, null)
+                    .create();
+            currentShownErrorDialog.show();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     /**
-     * Granting permission to Access for website safely
+     * check parameters for null before sending it.
+     *
+     * @param map
+     * @return
      */
-
-    public static class HttpsTrustManager implements X509TrustManager {
-
-        private static final X509Certificate[] _AcceptedIssuers = new X509Certificate[]{};
-        private static TrustManager[] trustManagers;
-
-        public static void allowAllSSL() {
-            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-                @Override
-                public boolean verify(String arg0, SSLSession arg1) {
-                    return true;
-                }
-            });
-
-            SSLContext context = null;
-            if ( trustManagers == null ) {
-                trustManagers = new TrustManager[]{new HttpsTrustManager()};
+    private Map<String, String> checkParams(Map<String, String> map) {
+        for (Map.Entry<String, String> pairs : map.entrySet()) {
+            if (pairs.getValue() == null) {
+                map.put(pairs.getKey(), "");
             }
-
-            try {
-                context = SSLContext.getInstance("TLS");
-                context.init(null, trustManagers, new SecureRandom());
-            } catch ( NoSuchAlgorithmException e ) {
-                e.printStackTrace();
-            } catch ( KeyManagementException e ) {
-                e.printStackTrace();
-            }
-
-            HttpsURLConnection.setDefaultSSLSocketFactory(context
-                    .getSocketFactory());
         }
+        return map;
+    }
 
-        @Override
-        public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
-                throws java.security.cert.CertificateException {
-        }
 
-        @Override
-        public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
-                throws java.security.cert.CertificateException {
-        }
+    /**
+     * Handles the server response delegation
+     */
+    public interface ServerCallback {
+        void onSuccess(String result) throws JSONException;
 
-        public boolean isClientTrusted(X509Certificate[] chain) {
-            return true;
-        }
+        void onError(String result, int errorCode) throws JSONException;
+    }
 
-        public boolean isServerTrusted(X509Certificate[] chain) {
-            return true;
-        }
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return _AcceptedIssuers;
-        }
-    } //end of HttpsTrustManager class
-}//end of ServerComm class
+}
