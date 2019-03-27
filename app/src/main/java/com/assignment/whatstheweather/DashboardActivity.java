@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import com.assignment.whatstheweather.utils.Constants;
 import com.assignment.whatstheweather.utils.ServerComm;
@@ -45,10 +46,15 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
     boolean isNetwork = false;
     boolean canGetLocation = true;
 
+    private Toolbar toolbar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        toolbar = findViewById(R.id.toolbar_dashboard);
+        setSupportActionBar(toolbar);
 
         locationManager = (LocationManager) getSystemService(Service.LOCATION_SERVICE);
         isGPS = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -122,6 +128,9 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
 
                         Object minTempObj = weatherInfo.get("temp_min");
                         Object maxTempObj = weatherInfo.get("temp_max");
+
+                        if (getSupportActionBar() != null)
+                        getSupportActionBar().setTitle("Min." + minTempObj + "\u2103" + " & Max." + maxTempObj + "\u2103");
 
                         Log.e("Temperatures ", "Min : " + minTempObj + " Max : " + maxTempObj);
 
