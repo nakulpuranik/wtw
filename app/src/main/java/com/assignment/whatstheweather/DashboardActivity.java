@@ -59,10 +59,7 @@ public class DashboardActivity extends AppCompatActivity {
                        JSONObject weatherResponseObject = new JSONObject(result);
                        JSONObject weatherInfo = weatherResponseObject.getJSONObject("main");
 
-                       Double minTemp = (Double) weatherInfo.get("temp_min");
-                       Double maxTemp = (Double) weatherInfo.get("temp_max");
-
-                       Log.e("Temperatures ", "Min : " + minTemp + " Max : " + maxTemp);
+                       //Log.e("Temperatures ", "Min : " + minTemp + " Max : " + maxTemp);
 
                     } catch (JSONException e) {
                         e.printStackTrace();
