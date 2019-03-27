@@ -1,0 +1,34 @@
+[
+  {
+    "id":1,
+    "title":"Alluvial soils"
+  },
+  {
+    "id":2,
+    "title":"Black (or Regur soil"
+  },
+  {
+    "id":3,
+    "title":"Red and Yellow soils"
+  },
+  {
+    "id":4,
+    "title":"Laterite soils"
+  },
+  {
+    "id":5,
+    "title":"Arid and desert soils"
+  },
+  {
+    "id":6,
+    "title":"Saline and alkaline soils"
+  },
+  {
+    "id":7,
+    "title":"Peaty and marshy soils"
+  },
+  {
+    "id":8,
+    "title":"Forest and mountain soils"
+  }
+]
