@@ -1,11 +1,11 @@
-package com.assignment.animation.animationassignment.model;
+package com.assignment.whatstheweather.Models;
 
 /**
  * Created by Nakul
  */
  
  public class Location {
-    private string lattitude,longitude;
+    private String lattitude,longitude;
     
     public Location()
     {
