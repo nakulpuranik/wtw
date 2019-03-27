@@ -27,6 +27,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.assignment.whatstheweather.Models.SoilTypes;
@@ -72,6 +73,7 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
 
 
     private Toolbar toolbar;
+    private String minMaxTempStr;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -196,7 +198,14 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
                     scrollRange = appBarLayout.getTotalScrollRange();
                 }
                 if (scrollRange + verticalOffset == 0) {
-                    collapsingToolbar.setTitle(getString(R.string.app_name));
+                    String titleStr = "";
+                    if(!TextUtils.isEmpty(minMaxTempStr)){
+                        titleStr = minMaxTempStr;
+                    }
+                    else{
+                        titleStr = getString(R.string.app_name);
+                    }
+                    collapsingToolbar.setTitle(titleStr);
                     isShow = true;
                 } else if (isShow) {
                     collapsingToolbar.setTitle(" ");
@@ -237,9 +246,10 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
 
                         Object minTempObj = weatherInfo.get("temp_min");
                         Object maxTempObj = weatherInfo.get("temp_max");
-
-                        if (getSupportActionBar() != null)
-                        getSupportActionBar().setTitle("Min." + minTempObj + "\u2103" + " & Max." + maxTempObj + "\u2103");
+                        minMaxTempStr = "Min." + minTempObj + "\u2103" + " & Max." + maxTempObj + "\u2103";
+                        if (getSupportActionBar() != null){
+                            getSupportActionBar().setTitle(minMaxTempStr);
+                        }
 
                         Log.e("Temperatures ", "Min : " + minTempObj + " Max : " + maxTempObj);
 

@@ -57,14 +57,21 @@
                 </LinearLayout>
             </RelativeLayout>
 
+                <!--<android.support.v7.widget.Toolbar-->
+                    <!--android:id="@+id/toolbar_dashboard"-->
+                    <!--android:layout_width="match_parent"-->
+                    <!--android:layout_height="?attr/actionBarSize"-->
+                    <!--android:background="?attr/colorPrimary"-->
+                    <!--android:gravity="center_vertical|start"-->
+                    <!--app:popupTheme="@style/AppTheme.PopupOverlay"-->
+                    <!--app:titleTextAppearance="@style/Toolbar.TitleText"/>-->
             <android.support.v7.widget.Toolbar
                 android:id="@+id/toolbar_dashboard"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="?attr/colorPrimary"
-                android:gravity="center_vertical|start"
-                app:popupTheme="@style/AppTheme.PopupOverlay"
-                app:titleTextAppearance="@style/Toolbar.TitleText"/>
+                app:layout_collapseMode="pin"
+                app:titleTextAppearance="@style/Toolbar.TitleText"
+                app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
         </android.support.design.widget.CollapsingToolbarLayout>
 

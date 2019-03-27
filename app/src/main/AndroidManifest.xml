@@ -16,7 +16,8 @@
         android:theme="@style/AppTheme">
         <activity android:name=".DashboardActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/DashboardTheme">
+            >
+            <!--android:theme="@style/DashboardTheme"-->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.VIEW" />
