@@ -12,20 +12,40 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
+import android.Manifest;
+import android.app.Service;
+import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.CollapsingToolbarLayout;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+
+import com.assignment.whatstheweather.Models.SoilTypes;
+import com.assignment.whatstheweather.adapters.SoilAdapter;
 import com.assignment.whatstheweather.utils.Constants;
+import com.assignment.whatstheweather.utils.GridSpacingItemDecoration;
 import com.assignment.whatstheweather.utils.ServerComm;
 import com.assignment.whatstheweather.utils.Utils;
+
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Scanner;
 
 public class DashboardActivity extends AppCompatActivity implements LocationListener {
 
@@ -46,6 +66,11 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
     boolean isNetwork = false;
     boolean canGetLocation = true;
 
+    private RecyclerView recyclerView;
+    private ArrayList<SoilTypes> soilList;
+    private SoilAdapter adapter;
+
+
     private Toolbar toolbar;
 
     @Override
@@ -55,6 +80,14 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
 
         toolbar = findViewById(R.id.toolbar_dashboard);
         setSupportActionBar(toolbar);
+
+        initCollapsingToolbar();
+
+        initView();
+
+        initGridView();
+
+        prepareSoilList();
 
         locationManager = (LocationManager) getSystemService(Service.LOCATION_SERVICE);
         isGPS = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -95,6 +128,82 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
         } catch (JSONException ex) {
             ex.printStackTrace();
         }
+    }
+
+    private void prepareSoilList() {
+        try{
+            InputStream inputStream = DashboardActivity.this.getResources().openRawResource(R.raw.soil);
+            String movieJsonStr = new Scanner(inputStream).useDelimiter("\\A").next();
+            JSONArray movieJsonArr = new JSONArray(movieJsonStr);
+            for(int index=0;index<movieJsonArr.length();index++){
+                JSONObject soilDetails = (JSONObject) movieJsonArr.get(index);
+                SoilTypes soil = new SoilTypes(
+                        soilDetails.getInt("id"),
+                        soilDetails.getString("title")
+                );
+                soilList.add(soil);
+            }
+        }
+        catch (JSONException ex){
+            ex.printStackTrace();
+        }
+    }
+
+    /**
+     * This will make the data and recycler list view connection
+     */
+    private void initGridView() {
+        soilList = new ArrayList<>();
+        adapter = new SoilAdapter(DashboardActivity.this, soilList);
+
+        int colSpan = Utils.calculateNoOfColumns(DashboardActivity.this);
+        RecyclerView.LayoutManager mLayoutManager = new GridLayoutManager(this, colSpan);
+        recyclerView.setLayoutManager(mLayoutManager);
+        recyclerView.addItemDecoration(new GridSpacingItemDecoration(colSpan, Utils.dpToPx(DashboardActivity.this,10), true));
+        recyclerView.setItemAnimator(new DefaultItemAnimator());
+        recyclerView.setAdapter(adapter);
+
+        //TODO: add touch listener
+        //recyclerView.addOnItemTouchListener(new RecyclerTouchListener(this,recyclerView,this));
+    }
+
+    /**
+     * Init all Activity view
+     */
+    private void initView() {
+        recyclerView = findViewById(R.id.recycler_view);
+    }
+
+    /**
+     * Initializing collapsing toolbar
+     * Will show and hide the toolbar title on scroll
+     */
+    private void initCollapsingToolbar() {
+        final CollapsingToolbarLayout collapsingToolbar =
+                findViewById(R.id.collapsing_toolbar);
+        collapsingToolbar.setTitle(" ");
+        AppBarLayout appBarLayout = (AppBarLayout) findViewById(R.id.appbar);
+        appBarLayout.setExpanded(true);
+
+        // hiding & showing the title when toolbar expanded & collapsed
+        appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+            boolean isShow = false;
+            int scrollRange = -1;
+
+            @Override
+            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+                if (scrollRange == -1) {
+                    scrollRange = appBarLayout.getTotalScrollRange();
+                }
+                if (scrollRange + verticalOffset == 0) {
+                    collapsingToolbar.setTitle(getString(R.string.app_name));
+                    isShow = true;
+                } else if (isShow) {
+                    collapsingToolbar.setTitle(" ");
+                    isShow = false;
+                }
+            }
+        });
     }
 
     public String getQueryString(JSONObject unparsedJson) throws JSONException {

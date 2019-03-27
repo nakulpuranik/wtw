@@ -3,6 +3,7 @@ package com.assignment.whatstheweather.utils;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -11,10 +12,13 @@ import android.support.annotation.ColorRes;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.assignment.whatstheweather.DashboardActivity;
 import com.assignment.whatstheweather.R;
 import com.assignment.whatstheweather.interfaces.IAlertTargetHandler;
 
@@ -130,6 +134,26 @@ public class Utils {
                 btn.setAllCaps(false);
             }
         }
+    }
+
+    /**
+     * Get the appropriate number of columns
+     * @param context
+     * @return noOfColumns appropriate column number
+     */
+    public static int calculateNoOfColumns(Context context) {
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+        float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+        int noOfColumns = (int) (dpWidth / 180);
+        return noOfColumns;
+    }
+
+    /**
+     * Converting dp to pixel
+     */
+    public static int dpToPx(Context context, int dp) {
+        Resources r = context.getResources();
+        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, r.getDisplayMetrics()));
     }
 
     /**
