@@ -12,26 +12,27 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
-import android.Manifest;
-import android.app.Service;
-import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.design.widget.AppBarLayout;
-import android.support.design.widget.CollapsingToolbarLayout;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.ActivityOptionsCompat;
+import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 
 import com.assignment.whatstheweather.Models.SoilTypes;
 import com.assignment.whatstheweather.adapters.SoilAdapter;
+import com.assignment.whatstheweather.listeners.ClickListeners;
+import com.assignment.whatstheweather.listeners.RecyclerTouchListener;
 import com.assignment.whatstheweather.utils.Constants;
 import com.assignment.whatstheweather.utils.GridSpacingItemDecoration;
 import com.assignment.whatstheweather.utils.ServerComm;
@@ -41,14 +42,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
 
-public class DashboardActivity extends AppCompatActivity implements LocationListener {
+public class DashboardActivity extends AppCompatActivity implements LocationListener, ClickListeners {
 
     private String latitude, longitude;
 
@@ -132,6 +131,9 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
         }
     }
 
+    /**
+    *   This prepares the SoilList from the json file.
+    */
     private void prepareSoilList() {
         try{
             InputStream inputStream = DashboardActivity.this.getResources().openRawResource(R.raw.soil);
@@ -166,7 +168,7 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
         recyclerView.setAdapter(adapter);
 
         //TODO: add touch listener
-        //recyclerView.addOnItemTouchListener(new RecyclerTouchListener(this,recyclerView,this));
+        recyclerView.addOnItemTouchListener(new RecyclerTouchListener(DashboardActivity.this ,recyclerView,DashboardActivity.this));
     }
 
     /**
@@ -455,4 +457,22 @@ public class DashboardActivity extends AppCompatActivity implements LocationList
         }
     }
 
+    @Override
+    public void onClick(View view, int position) {
+        Intent intent = new Intent(DashboardActivity.this, DetailsActivity.class);
+        intent.putExtra(DetailsActivity.EXTRA_PARAM_ID, soilList.get(position).getSoilId());
+        intent.putExtra(DetailsActivity.EXTRA_PARAM_TITLE, soilList.get(position).getSoilType());
+
+        ActivityOptionsCompat activityOptions = ActivityOptionsCompat.
+                makeSceneTransitionAnimation(DashboardActivity.this,
+                        new Pair<View, String>((view.findViewById(R.id.thumbnail)), DetailsActivity.VIEW_NAME_HEADER_IMAGE),
+                        new Pair<View, String>(view.findViewById(R.id.titleTV),
+                                DetailsActivity.VIEW_NAME_HEADER_TITLE));
+        ActivityCompat.startActivity(DashboardActivity.this,intent,activityOptions.toBundle());
+    }
+
+    @Override
+    public void onLongClick(View view, int position) {
+        //Empty implementations
+    }
 }

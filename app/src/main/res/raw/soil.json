@@ -1,34 +1,34 @@
 [
   {
     "id":1,
-    "title":"Alluvial soils"
+    "title":"गांडुळ माती"
   },
   {
-    "id":2,
-    "title":"Black (or Regur soil"
+      "id":2,
+      "title":"काळा (किंवा रेगुर माती)"
   },
   {
     "id":3,
-    "title":"Red and Yellow soils"
+    "title":"लाल आणि पिवळा माती"
   },
   {
     "id":4,
-    "title":"Laterite soils"
+    "title":"लेटराइट माती"
   },
   {
     "id":5,
-    "title":"Arid and desert soils"
+    "title":"शुष्क आणि वाळवंट माती"
   },
   {
     "id":6,
-    "title":"Saline and alkaline soils"
+    "title":"सलाईन आणि क्षारीय माती"
   },
   {
     "id":7,
-    "title":"Peaty and marshy soils"
+    "title":"पीट आणि मार्शली माती"
   },
   {
     "id":8,
-    "title":"Forest and mountain soils"
+    "title":"वन आणि माउंटन माती"
   }
 ]
